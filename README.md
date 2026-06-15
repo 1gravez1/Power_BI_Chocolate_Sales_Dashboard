@@ -1,52 +1,52 @@
-# 🍫 Analiza Prodaje in Uspešnosti (Power BI Dashboard)
+# 🍫 Sales & Performance Analysis (Power BI Dashboard)
 
-## 📌 Pregled projekta
-Projekt obsega razvoj interaktivne in optimizirane analitične nadzorne plošče (dashboard) v Power BI za celostno spremljanje prodajnih pošiljk, stroškov, dobičkonosnosti ter uspešnosti prodajne ekipe. Razvoj sledi najboljšim praksam poslovne analitike: od čistega podatkovnega modeliranja in naprednega DAX-a do premišljene uporabniške izkušnje (UX/UI).
+## 📌 Project Overview
+This project covers the development of an interactive, optimized Power BI dashboard for end-to-end monitoring of sales shipments, costs, profitability, and sales team performance. The development follows business analytics best practices: from clean data modeling and advanced DAX to thoughtful UX/UI design.
 
 ![Dashboard screenshot](dashboard_screenshot.png)
 
 ---
 
-## 🏗️ 1. Podatkovno modeliranje (Star Schema)
-Za zagotavljanje optimalne hitrosti delovanja in preprečevanje zmešnjave v podatkih je model organiziran v **Zvezdno shemo (Star Schema)**. Ta sistem strogo ločuje podatke na dve vrsti tabel:
+## 🏗️ 1. Data Modeling (Star Schema)
+To ensure optimal performance and prevent data clutter, the model is organized using a **Star Schema**. This approach strictly separates data into two types of tables:
 
-* **Tabela dejstev (`Fact table`):** Središče zvezde predstavlja glavna in največja tabela `shipments`. Vsebuje transakcijske številke in dogodke, ki jih merimo (npr. beleženje vsakega nakupa/pošiljke s pripadajočo količino in zneski).
-* **Dimenzijske tabele (`Dimension tables`):** Žarki zvezde, ki dajejo številkam podrobnosti in kontekst (*Kdo? Kaj? Kdaj? Kje?*). Uporabljene so namenske tabele za kupce (`people`), izdelke (`products`) in koledar (`calendar`).
+* **Fact table:** The center of the star is the main, largest table `shipments`. It contains the transactional numbers and events being measured (e.g., logging each purchase/shipment with its quantity and amounts).
+* **Dimension tables:** The rays of the star, providing context and detail to those numbers (*Who? What? When? Where?*). Dedicated tables are used for customers (`people`), products (`products`), and dates (`calendar`).
 
 ---
 
-## 📅 2. Upravljanje s časom & Časovna inteligenca (Time Intelligence)
+## 📅 2. Time Management & Time Intelligence
 
-### Uradna datumska tabela
-V pogledu *Model View* je tabela `calendar` označena kot **"Mark as Date Table"**. S tem korakom Power BI eksplicitno določi to tabelo kot glavni referenčni vir za vse časovne izračune, s čimer se prepreči samodejno generiranje skritih tabel v ozadju in zagotovi 100 % točnost DAX časovnih funkcij.
+### Official Date Table
+In *Model View*, the `calendar` table is marked as **"Mark as Date Table"**. This step explicitly tells Power BI to use this table as the main reference source for all time-based calculations, preventing automatic generation of hidden date tables in the background and ensuring 100% accuracy of DAX time intelligence functions.
 
-### Power Query (PQ) transformacije
-V Power Query editorju so bili v tabelo `calendar` dodani naslednji opisni stolpci za granularno filtriranje:
+### Power Query (PQ) Transformations
+The following descriptive columns were added to the `calendar` table in Power Query for granular filtering:
 * `year`, `month`, `name of month`...
-* **Pomembno:** Dodan je namenski stolpec `start of month`, ki služi kot ključni temelj za napredne vizualne časovne izračune.
+* **Important:** A dedicated `start of month` column was added, serving as the key foundation for advanced visual-level time calculations.
 
 ---
 
-## 🧮 3. Razvoj DAX Mer (Measures)
+## 🧮 3. DAX Measures Development
 
-Vse kalkulacije so zaradi organiziranosti shranjene v namensko ustvarjeni prazni tabeli **`_Measures`** (vneseni preko gumba *Enter Data*).
+All calculations are stored, for organizational purposes, in a dedicated empty table **`_Measures`** (created via the *Enter Data* button).
 
-### Osnovne mere:
-* **Total Sales:** `SUM(shipments[Sales])` *(Format: Currency, brez decimalnih števil)*
+### Core measures:
+* **Total Sales:** `SUM(shipments[Sales])` *(Format: Currency, no decimals)*
 * **Total Boxes:** `SUM(shipments[Boxes])`
 * **Total Shipments:** `COUNTROWS(shipments)`
 
-### Izračun stroškov in dobička (Vrstični kontekst -> Agregacija):
-1. Najprej je bil v tabeli pošiljk ustvarjen kalkuliran stolpec `Costs`, ki s funkcijo `RELATED` prenese strošek posamezne škatle iz dimenzijske tabele produktov in ga pomnoži s številom škatel v pošiljki:
+### Cost and Profit Calculation (Row Context -> Aggregation):
+1. First, a calculated column `Costs` was created in the shipments table, using `RELATED` to pull the cost per box from the products dimension table and multiplying it by the number of boxes in the shipment:
    $$\text{Costs} = \text{RELATED}(\text{products[Cost per box]}) \times \text{shipments[Boxes]}$$
 2. **Total Costs:** `SUM(shipments[Costs])`
 3. **Total Profit:** `[Total Sales] - [Total Costs]`
 
-### LBS Analiza (Pošiljke z manj kot 50 škatlami):
+### LBS Analysis (Shipments with fewer than 50 boxes):
 * **LBS Count:** `CALCULATE([Total Shipments], shipments[Boxes] < 50)`
 * **% LBS:** `DIVIDE([LBS Count], [Total Shipments])`
 
-### Časovna primerjava (Month-over-Month v tabelah):
+### Time Comparison (Month-over-Month in tables):
 * **Total Sales (prev month):** `CALCULATE([Total Sales], PREVIOUSMONTH('calendar'[Date]))`
 * **MoM Sales Change %:**
     ```dax
@@ -58,13 +58,13 @@ Vse kalkulacije so zaradi organiziranosti shranjene v namensko ustvarjeni prazni
 
 ---
 
-## 🎨 4. Oblikovanje strani & Napredne vizualizacije (Page Design)
+## 🎨 4. Page Design & Advanced Visualizations
 
-### Nastavitve platna (Canvas)
-Privzeta velikost strani (1280 x 720 px) je bila preko *Format -> Canvas Settings* nadgrajena na standardno Full HD ločljivost **1920 x 1080 px** za večjo preglednost in profesionalno postavitev.
+### Canvas Settings
+The default page size (1280 x 720 px) was upgraded via *Format -> Canvas Settings* to standard Full HD resolution **1920 x 1080 px** for better clarity and a more professional layout.
 
-### Reševanje konteksta filtra na ravni KPI kartic (*Reference Labels*)
-Ker klasične časovne mere na samostojnih karticah ne delujejo pravilno zaradi odsotnosti vrstičnega konteksta mesecev, je bila logika razvita preko treh naprednih mer, ki dinamično izolirajo zadnji razpoložljiv mesec:
+### Solving Filter Context at the KPI Card Level (*Reference Labels*)
+Since standard time intelligence measures don't work correctly on standalone cards due to the lack of a monthly row context, the logic was built using three advanced measures that dynamically isolate the latest available month:
 1. **Latest Date:** `LASTDATE('calendar'[Start of Month])`
 2. **Total Sales Latest Month:**
     ```dax
@@ -72,7 +72,7 @@ Ker klasične časovne mere na samostojnih karticah ne delujejo pravilno zaradi 
     VAR ld = [Latest Date]
     RETURN CALCULATE([Total Sales], 'calendar'[Start of Month] = ld)
     ```
-3. **Latest MoM Sales Change %:** (Uporabljeno kot *Reference label* pod glavnim KPI-jem):
+3. **Latest MoM Sales Change %:** (Used as a *Reference label* under the main KPI):
     ```dax
     Latest MoM Sales Change % = 
     VAR ld = [Latest Date]
@@ -80,30 +80,30 @@ Ker klasične časovne mere na samostojnih karticah ne delujejo pravilno zaradi 
     VAR prev_month_sales = CALCULATE([Total Sales], 'calendar'[Start of Month] = EDATE(ld, -1))
     RETURN DIVIDE(this_month_sales - prev_month_sales, prev_month_sales)
     ```
-* **Pogojno oblikovanje (Conditional Formatting):** Vrednost znotraj *Reference label* se dinamično obarva **rdeče**, če je stopnja rasti manjša od 0, in **zeleno**, če je večja od 0.
+* **Conditional Formatting:** The value inside the *Reference label* is dynamically colored **red** if the growth rate is below 0, and **green** if it is above 0.
 
-### Vizualni elementi:
-* **Gauge chart (Merilnik):** Implementiran za prikaz `% Profit` in prilagojen celostni grafični podobi.
-* **Dinamična analiza trendov (Field Parameter):** Namesto petih ločenih grafov je bil ustvarjen en sam linijski grafikon. Preko *Modeling -> New Parameter -> Fields* je bil ustvarjen parameter **`Measure Selector`**. Na X-os je umeščen datum, na Y-os pa `Measure Selector`, kar uporabniku omogoča dinamično preklapljanje med prikazanimi metrikami znotraj enega vizuala.
-* **Histogram porazdelitve velikosti pošiljk:** Ustvarjen s pomočjo funkcije skupin (*grouping/binning*) nad poljem `Boxes`. Na X-osi so prikazani `bins (boxes)`, na Y-osi pa `Total Shipments`. Dodan je *Zoom slider* za interaktivno prilagajanje razpona X-osi.
+### Visual Elements:
+* **Gauge chart:** Implemented to display `% Profit`, formatted to match the overall design.
+* **Dynamic Trend Analysis (Field Parameter):** Instead of five separate charts, a single line chart was created. Via *Modeling -> New Parameter -> Fields*, a parameter named **`Measure Selector`** was created. The date is placed on the X-axis and `Measure Selector` on the Y-axis, allowing users to dynamically switch between displayed metrics within a single visual.
+* **Shipment Size Distribution Histogram:** Built using grouping/binning on the `Boxes` field. The X-axis shows `bins (boxes)` and the Y-axis shows `Total Shipments`. A *Zoom slider* was added to interactively adjust the X-axis range.
 
 ---
 
-## 🔄 5. Napredna UX interakcija s preklapljanjem tabel (Bookmarks)
+## 🔄 5. Advanced UX Interaction with Table Switching (Bookmarks)
 
-Za maksimalni izkoristek prostora sta bili tabela prodajalcev in tabela produktov umeščeni neposredno ena na drugo, med njima pa uporabnik preklaplja s pritiskom na ikoni (`people` in `product`).
+To maximize use of space, the sales person table and the product table were placed directly on top of each other, with the user switching between them by clicking on icons (`people` and `product`).
 
-### Tehnična izvedba preko zaznamkov (Bookmarks):
-1. **Indikator ciljev prodajalcev:** V tabeli prodajalcev je bila implementirana logika za doseganje ciljne dobičkonosnosti:
+### Technical Implementation via Bookmarks:
+1. **Sales Target Indicator:** The sales person table implements logic to track whether a profitability target is met:
    `Profit Target Indicator = IF([% Profit] > [Profit Target], 2, 1)`
-2. Z uporabo plošč **Selection** in **Bookmarks** (zavihek *View*) so bili vsi elementi (obe tabeli in obe ikoni) natančno poimenovani.
-3. **Zaznamek 1 (Sales Table):** Tabela produktov je skrita, tabela prodajalcev je vidna. Zaznamek je shranjen.
-4. **Zaznamek 2 (Product Table):** Tabela prodajalcev je skrita, tabela produktov je vidna. Zaznamek je shranjen.
-5. Zaznamki so bili dodeljeni ikonam preko *Format -> Action -> Bookmark*.
-* ⚠️ **Kritična opomba za pravilno delovanje:** Ker zaznamki privzeto shranijo tudi stanje podatkov (trenutne filtre), je bilo pri obeh zaznamkih ročno **odznačeno polje "Data"**. To zagotavlja, da se ob preklopu med tabelama vizualno spremeni oblika, vsi trenutno izbrani filtri na poročilu pa ostanejo nedotaknjeni.
+2. Using the **Selection** and **Bookmarks** panes (*View* tab), all elements (both tables and both icons) were precisely named.
+3. **Bookmark 1 (Sales Table):** Product table hidden, sales person table visible. Bookmark saved.
+4. **Bookmark 2 (Product Table):** Sales person table hidden, product table visible. Bookmark saved.
+5. The bookmarks were assigned to the icons via *Format -> Action -> Bookmark*.
+* ⚠️ **Critical note for correct functionality:** Since bookmarks save data state (current filters) by default, the **"Data" checkbox was manually unchecked** for both bookmarks. This ensures that switching between tables only changes the visual shown, while all currently selected report filters remain untouched.
 
 ---
 
-## 🚀 Kako zagnati projekt?
-1. Prenesite datoteko s končnico `.pbix` iz tega repozitorija.
-2. Zaženite jo s programom **Power BI Desktop**.
+## 🚀 How to Run the Project?
+1. Download the `.pbix` file from this repository.
+2. Open it with **Power BI Desktop**.
