@@ -3,6 +3,8 @@
 ## 📌 Pregled projekta
 Projekt obsega razvoj interaktivne in optimizirane analitične nadzorne plošče (dashboard) v Power BI za celostno spremljanje prodajnih pošiljk, stroškov, dobičkonosnosti ter uspešnosti prodajne ekipe. Razvoj sledi najboljšim praksam poslovne analitike: od čistega podatkovnega modeliranja in naprednega DAX-a do premišljene uporabniške izkušnje (UX/UI).
 
+![Dashboard screenshot](dashboard_screenshot.png)
+
 ---
 
 ## 🏗️ 1. Podatkovno modeliranje (Star Schema)
@@ -15,7 +17,7 @@ Za zagotavljanje optimalne hitrosti delovanja in preprečevanje zmešnjave v pod
 
 ## 📅 2. Upravljanje s časom & Časovna inteligenca (Time Intelligence)
 
-### Uradna datumskа tabela
+### Uradna datumska tabela
 V pogledu *Model View* je tabela `calendar` označena kot **"Mark as Date Table"**. S tem korakom Power BI eksplicitno določi to tabelo kot glavni referenčni vir za vse časovne izračune, s čimer se prepreči samodejno generiranje skritih tabel v ozadju in zagotovi 100 % točnost DAX časovnih funkcij.
 
 ### Power Query (PQ) transformacije
@@ -35,10 +37,10 @@ Vse kalkulacije so zaradi organiziranosti shranjene v namensko ustvarjeni prazni
 * **Total Shipments:** `COUNTROWS(shipments)`
 
 ### Izračun stroškov in dobička (Vrstični kontekst -> Agregacija):
-1.  Najprej je bil v tabeli pošiljk ustvarjen kalkuliran stolpec `Costs`, ki s funkcijo `RELATED` prenese strošek posamezne škatle iz dimenzijske tabele produktov in ga pomnoži s številom škatel v pošiljki:
-    $$\text{Costs} = \text{RELATED}(\text{products[Cost per box]}) \times \text{shipments[Boxes]}$$
-2.  **Total Costs:** `SUM(shipments[Costs])`
-3.  **Total Profit:** `[Total Sales] - [Total Costs]`
+1. Najprej je bil v tabeli pošiljk ustvarjen kalkuliran stolpec `Costs`, ki s funkcijo `RELATED` prenese strošek posamezne škatle iz dimenzijske tabele produktov in ga pomnoži s številom škatel v pošiljki:
+   $$\text{Costs} = \text{RELATED}(\text{products[Cost per box]}) \times \text{shipments[Boxes]}$$
+2. **Total Costs:** `SUM(shipments[Costs])`
+3. **Total Profit:** `[Total Sales] - [Total Costs]`
 
 ### LBS Analiza (Pošiljke z manj kot 50 škatlami):
 * **LBS Count:** `CALCULATE([Total Shipments], shipments[Boxes] < 50)`
@@ -46,7 +48,8 @@ Vse kalkulacije so zaradi organiziranosti shranjene v namensko ustvarjeni prazni
 
 ### Časovna primerjava (Month-over-Month v tabelah):
 * **Total Sales (prev month):** `CALCULATE([Total Sales], PREVIOUSMONTH('calendar'[Date]))`
-* **MoM Sales Change %:** ```dax
+* **MoM Sales Change %:**
+    ```dax
     MoM Sales Change % = 
     VAR this_month = [Total Sales]
     VAR prev_month = [Total Sales (prev month)]
@@ -62,13 +65,14 @@ Privzeta velikost strani (1280 x 720 px) je bila preko *Format -> Canvas Setting
 
 ### Reševanje konteksta filtra na ravni KPI kartic (*Reference Labels*)
 Ker klasične časovne mere na samostojnih karticah ne delujejo pravilno zaradi odsotnosti vrstičnega konteksta mesecev, je bila logika razvita preko treh naprednih mer, ki dinamično izolirajo zadnji razpoložljiv mesec:
-1.  **Latest Date:** `LASTDATE('calendar'[Start of Month])`
-2.  **Total Sales Latest Month:** ```dax
+1. **Latest Date:** `LASTDATE('calendar'[Start of Month])`
+2. **Total Sales Latest Month:**
+    ```dax
     Total Sales Latest Month = 
     VAR ld = [Latest Date]
     RETURN CALCULATE([Total Sales], 'calendar'[Start of Month] = ld)
     ```
-3.  **Latest MoM Sales Change %:** (Uporabljeno kot *Reference label* pod glavnim KPI-jem):
+3. **Latest MoM Sales Change %:** (Uporabljeno kot *Reference label* pod glavnim KPI-jem):
     ```dax
     Latest MoM Sales Change % = 
     VAR ld = [Latest Date]
@@ -90,12 +94,12 @@ Ker klasične časovne mere na samostojnih karticah ne delujejo pravilno zaradi 
 Za maksimalni izkoristek prostora sta bili tabela prodajalcev in tabela produktov umeščeni neposredno ena na drugo, med njima pa uporabnik preklaplja s pritiskom na ikoni (`people` in `product`).
 
 ### Tehnična izvedba preko zaznamkov (Bookmarks):
-1.  **Indikator ciljev prodajalcev:** V tabeli prodajalcev je bila implementirana logika za doseganje ciljne dobičkonosnosti:
-    `Profit Target Indicator = IF([% Profit] > [Profit Target], 2, 1)`
-2.  Z uporabo plošč **Selection** in **Bookmarks** (zavihek *View*) so bili vsi elementi (obe tabeli in obe ikoni) natančno poimenovani.
-3.  **Zaznamek 1 (Sales Table):** Tabela produktov je skrita, tabela prodajalcev je vidna. Zaznamek je shranjen.
-4.  **Zaznamek 2 (Product Table):** Tabela prodajalcev je skrita, tabela produktov je vidna. Zaznamek je shranjen.
-5.  Zaznamki so bili dodeljeni ikonam preko *Format -> Action -> Bookmark*.
+1. **Indikator ciljev prodajalcev:** V tabeli prodajalcev je bila implementirana logika za doseganje ciljne dobičkonosnosti:
+   `Profit Target Indicator = IF([% Profit] > [Profit Target], 2, 1)`
+2. Z uporabo plošč **Selection** in **Bookmarks** (zavihek *View*) so bili vsi elementi (obe tabeli in obe ikoni) natančno poimenovani.
+3. **Zaznamek 1 (Sales Table):** Tabela produktov je skrita, tabela prodajalcev je vidna. Zaznamek je shranjen.
+4. **Zaznamek 2 (Product Table):** Tabela prodajalcev je skrita, tabela produktov je vidna. Zaznamek je shranjen.
+5. Zaznamki so bili dodeljeni ikonam preko *Format -> Action -> Bookmark*.
 * ⚠️ **Kritična opomba za pravilno delovanje:** Ker zaznamki privzeto shranijo tudi stanje podatkov (trenutne filtre), je bilo pri obeh zaznamkih ročno **odznačeno polje "Data"**. To zagotavlja, da se ob preklopu med tabelama vizualno spremeni oblika, vsi trenutno izbrani filtri na poročilu pa ostanejo nedotaknjeni.
 
 ---
